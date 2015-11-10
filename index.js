@@ -1,51 +1,64 @@
-"use strict";
+'use strict'
+const Scanner = require('dice-expression-scanner')
+const CONSTANT = require('./lib/constant')
 
-const Tree = require('tree');
+module.exports = function DiceExpressionParser (exp) {
+  return {
+    parse: function () {
+      const scanner = new Scanner(exp)
 
-module.exports = function DiceExpressionParser(expression) {
-	return {
-		parse: function () {
-			const scanner = new (require('dice-expression-scanner'))(expression);
-			const parseTree = [];
-			const operators = [];
-			const operands = [];
+      const operators = []
+      const operands = []
 
-			let token = null;
-			let lastToken = null;
-			let operator;
+      let lastToken = null
+      let token = scanner.nextToken()
 
-			while ((token = scanner.nextToken()) !== null) {
-				if (lastToken && lastToken.type === token.type) {
-					throw new Error();
-				}
-				if (token.type === "operator") {
-					operators.push(token);
-				} else { 
-					operands.unshift(token);
-				}
-				lastToken = token;
-			}
-			while (operator = operators.pop()) {
-				parseTree.push(operator);
-			}
-			while (operands.length) {
-				parseTree.push(operands.pop());
-			}
+      while (token !== null) {
+        if (lastToken && lastToken.type ===
+            token.type) {
+          throw new Error()
+        }
+        if (token.type === CONSTANT.OPERATOR) {
+          operators.push(token)
+        } else {
+          operands.unshift(token)
+        }
 
-			let tree = Tree(parseTree.shift() || null);
-			let currentNode = tree.root;
+        lastToken = token
+        token = scanner.nextToken()
+      }
 
-			while (currentNode && parseTree.length) {
-				currentNode.addLeftChild(parseTree.pop() || null);
-				currentNode.addRightChild(parseTree.shift() || null);
+      const tokens = []
+      let operator = operators.pop()
 
-				currentNode = currentNode.right;
-			}
-			if (parseTree.length) {
-				throw Error();
-			}
+      // Doing this puts the tokens in inverse polish notation ??
+      // making the construction of a properly left-associative tree
+      // trivial...this probably works because we only support
+      // two operations: +/-
 
-			return tree;
-		}
-	};
-};
+      while (operator) {
+        tokens.push(operator)
+        operator = operators.pop()
+      }
+      while (operands.length) {
+        tokens.push(operands.pop())
+      }
+
+      const root = tokens.shift() || null
+      let currentNode = root
+
+      while (currentNode && tokens.length) {
+        currentNode.right = tokens.pop() || null
+        currentNode.left = tokens.shift() || null
+
+        currentNode = currentNode.left
+      }
+
+      if (tokens.length) {
+        throw new Error()
+      }
+
+      return root
+    }
+  }
+}
