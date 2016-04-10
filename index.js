@@ -1,17 +1,17 @@
 'use strict'
-const Scanner = require('dice-expression-scanner')
-const CONSTANT = require('./lib/constant')
+var Scanner = require('dice-expression-scanner')
+var CONSTANT = require('dice-constants')
 
 module.exports = function DiceExpressionParser (exp) {
   return {
     parse: function () {
-      const scanner = new Scanner(exp)
+      var scanner = new Scanner(exp)
 
-      const operators = []
-      const operands = []
+      var operators = []
+      var operands = []
 
-      let lastToken = null
-      let token = scanner.nextToken()
+      var lastToken = null
+      var token = scanner.nextToken()
 
       while (token !== null) {
         if (lastToken && lastToken.type ===
@@ -25,16 +25,13 @@ module.exports = function DiceExpressionParser (exp) {
         }
 
         lastToken = token
+        lastToken.subType = lastToken.type
+        lastToken.type = CONSTANT.DICE_EXPRESSION
         token = scanner.nextToken()
       }
 
-      const tokens = []
-      let operator = operators.pop()
-
-      // Doing this puts the tokens in inverse polish notation ??
-      // making the construction of a properly left-associative tree
-      // trivial...this probably works because we only support
-      // two operations: +/-
+      var tokens = []
+      var operator = operators.pop()
 
       while (operator) {
         tokens.push(operator)
@@ -44,8 +41,8 @@ module.exports = function DiceExpressionParser (exp) {
         tokens.push(operands.pop())
       }
 
-      const root = tokens.shift() || null
-      let currentNode = root
+      var root = tokens.shift() || null
+      var currentNode = root
 
       while (currentNode && tokens.length) {
         currentNode.right = tokens.pop() || null
@@ -55,7 +52,7 @@ module.exports = function DiceExpressionParser (exp) {
       }
 
       if (tokens.length) {
-        throw new Error()
+        throw new Error('Parse error assembling the tree.')
       }
 
       return root
